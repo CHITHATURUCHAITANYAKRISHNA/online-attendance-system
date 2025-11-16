@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+
+    <style>
+        body {
+            background: #0b1220;
+            color: white;
+            font-family: "Inter", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .topbar {
+            background: #111827;
+            padding: 18px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .topbar h1 {
+            margin: 0;
+            color: #3b82f6;
+            font-size: 26px;
+        }
+
+        .actions button, 
+        .actions a {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+
+        .actions button:hover,
+        .actions a:hover {
+            background: #1d4ed8;
+        }
+
+        .container {
+            padding: 25px 40px;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #60a5fa;
+            border-left: 5px solid #2563eb;
+            padding-left: 10px;
+        }
+
+        .filter-box {
+            margin: 20px 0;
+            background: #111827;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-box input, .filter-box select {
+            padding: 10px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .filter-box label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #111827;
+            margin-top: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #1f2937;
+            padding: 14px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        td {
+            padding: 14px;
+            border-top: 1px solid #2d3748;
+        }
+
+        tr:hover {
+            background: #1e293b;
+        }
+
+        button.danger {
+            background: #dc2626;
+        }
+
+        button.green {
+            background: #16a34a;
+        }
+
+        button.danger:hover {
+            background: #b91c1c;
+        }
+
+        button.green:hover {
+            background: #15803d;
+        }
+
+        img {
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <h1>Admin Dashboard</h1>
+
+    <div class="actions">
+        <a href="/register">➕ Register Student</a>
+        <a href="/analytics">📊 Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- FILTERS -->
+    <div class="filter-box">
+        <div>
+            <label>Search (Name or Reg No)</label>
+            <input type="text" id="searchBox" placeholder="Search...">
+        </div>
+
+        <div>
+            <label>Department</label>
+            <select id="deptFilter">
+                <option value="">All Departments</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Date</label>
+            <input type="date" id="dateFilter">
+        </div>
+
+        <div>
+            <label>From</label>
+            <input type="date" id="fromDate">
+        </div>
+
+        <div>
+            <label>To</label>
+            <input type="date" id="toDate">
+        </div>
+    </div>
+
+
+    <h2>Students</h2>
+
+    <table id="students_table">
+        <thead>
+            <tr>
+                <th onclick="sortStudents('name')">Name ⬍</th>
+                <th onclick="sortStudents('reg_no')">Reg No ⬍</th>
+                <th>Dept</th>
+                <th>Photo</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody id="students_body"></tbody>
+    </table>
+
+    <h2>Attendance</h2>
+
+    <button class="green" onclick="downloadCSV()">Download CSV</button>
+    <button class="danger" onclick="resetAttendance()">Reset Attendance</button>
+
+    <table id="attendance_table">
+        <thead>
+            <tr>
+                <th onclick="sortAttendance('name')">Name ⬍</th>
+                <th onclick="sortAttendance('reg_no')">Reg No ⬍</th>
+                <th onclick="sortAttendance('date')">Date ⬍</th>
+                <th onclick="sortAttendance('time')">Time ⬍</th>
+            </tr>
+        </thead>
+        <tbody id="attendance_body"></tbody>
+    </table>
+
+</div>
+
+<script>
+
+let studentData = [];
+let attendanceData = [];
+let sortState = {};
+
+// -------------------- LOAD STUDENTS --------------------
+
+function renderStudents(data) {
+    let body = document.getElementById("students_body");
+    body.innerHTML = "";
+
+    // fill department dropdown
+    let dept = document.getElementById("deptFilter");
+    let depts = [...new Set(studentData.map(s => s.dept))];
+    dept.innerHTML = `<option value="">All Departments</option>`;
+    depts.forEach(d => dept.innerHTML += `<option>${d}</option>`);
+
+    data.forEach(s => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${s.name}</td>
+            <td>${s.reg_no}</td>
+            <td>${s.dept}</td>
+            <td><img src="/student_photo/${s.photo}" width="60" height="60"></td>
+            <td><button class="danger" onclick="deleteStudent('${s.reg_no}')">Delete</button></td>
+        `;
+        body.appendChild(row);
+    });
+}
+
+// -------------------- LOAD ATTENDANCE --------------------
+
+function renderAttendance(data) {
+    let body = document.getElementById("attendance_body");
+    body.innerHTML = "";
+
+    data.forEach(a => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${a.name}</td>
+            <td>${a.reg_no}</td>
+            <td>${a.date}</td>
+            <td>${a.time}</td>
+        `;
+        body.appendChild(row);
+    });
+}
+
+// -------------------- FETCH DATA --------------------
+
+function loadStudents() {
+    fetch("/get_students")
+        .then(r => r.json())
+        .then(data => {
+            studentData = data;
+            applyFilters();
+        });
+}
+
+function loadAttendance() {
+    fetch("/get_attendance")
+        .then(r => r.json())
+        .then(data => {
+            attendanceData = data;
+            applyFilters();
+        });
+}
+
+loadStudents();
+loadAttendance();
+setInterval(loadAttendance, 5000);
+
+
+// -------------------- FILTERS --------------------
+
+function applyFilters() {
+    let search = document.getElementById("searchBox").value.toLowerCase();
+    let dept = document.getElementById("deptFilter").value;
+    let date = document.getElementById("dateFilter").value;
+    let from = document.getElementById("fromDate").value;
+    let to = document.getElementById("toDate").value;
+
+    // FILTER STUDENTS
+    let filteredStudents = studentData.filter(s =>
+        (s.name.toLowerCase().includes(search) ||
+         s.reg_no.toLowerCase().includes(search)) &&
+        (dept === "" || s.dept === dept)
+    );
+
+    renderStudents(filteredStudents);
+
+    // FILTER ATTENDANCE
+    let filteredAttendance = attendanceData.filter(a => {
+        let ok = true;
+
+        if (search) {
+            ok &= a.name.toLowerCase().includes(search) ||
+                  a.reg_no.toLowerCase().includes(search);
+        }
+
+        if (date) ok &= a.date === date;
+        if (from) ok &= a.date >= from;
+        if (to) ok &= a.date <= to;
+
+        return ok;
+    });
+
+    renderAttendance(filteredAttendance);
+}
+
+
+document.querySelectorAll(".filter-box input, .filter-box select")
+    .forEach(e => e.addEventListener("input", applyFilters));
+
+
+// -------------------- SORTING --------------------
+
+function sortStudents(key) {
+    sortState[key] = !sortState[key];
+    studentData.sort((a,b)=>
+        sortState[key] ? (a[key] > b[key]) : (a[key] < b[key])
+    );
+    applyFilters();
+}
+
+function sortAttendance(key) {
+    sortState[key] = !sortState[key];
+    attendanceData.sort((a,b)=>
+        sortState[key] ? (a[key] > b[key]) : (a[key] < b[key])
+    );
+    applyFilters();
+}
+
+
+// -------------------- OTHER ACTIONS --------------------
+
+function deleteStudent(reg_no) {
+    fetch("/delete_student", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ reg_no })
+    }).then(() => loadStudents());
+}
+
+function downloadCSV() {
+    window.location.href = "/download_attendance";
+}
+
+function resetAttendance() {
+    fetch("/reset_attendance", { method: "POST" })
+        .then(() => loadAttendance());
+}
+
+function logout() {
+    fetch("/admin_logout", { method: "POST" })
+        .then(r => r.json())
+        .then(() => window.location.href = "/admin_login_page");
+}
+
+</script>
+
+</body>
+</html>

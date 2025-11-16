@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Face Attendance</title>
+
+    <style>
+        body { 
+            background: #0f0f0f; 
+            color: white; 
+            text-align: center; 
+            font-family: Arial, sans-serif;
+        }
+
+        video { 
+            width: 520px;
+            height: 390px;
+            border-radius: 12px;
+            margin-top: 25px;
+            object-fit: cover;
+            border: 2px solid #333;
+        }
+
+        #msg { 
+            margin-top: 20px; 
+            font-size: 24px; 
+            font-weight: bold;
+            min-height: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Face Attendance System</h1>
+
+<video id="camera" autoplay playsinline></video>
+<div id="msg"></div>
+
+<script>
+let video = document.getElementById("camera");
+let msg = document.getElementById("msg");
+
+// Start camera at 640×480
+navigator.mediaDevices.getUserMedia({
+    video: { width: { ideal: 640 }, height: { ideal: 480 } }
+})
+.then(stream => video.srcObject = stream)
+.catch(err => alert("Camera Error: " + err));
+
+
+// --- SEND FRAME EVERY 3 SECONDS ---
+setInterval(async () => {
+    if (video.videoWidth === 0) return;
+
+    let canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 480;
+
+    let ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, 640, 480);
+
+    let image = canvas.toDataURL("image/jpeg", 0.8);
+
+    try {
+        let res = await fetch("/mark_attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image })
+        });
+
+        let data = await res.json();
+
+        // --------------------
+        // ALL POSSIBLE RESULTS
+        // --------------------
+
+        if (data.status === "success") {
+            msg.innerHTML = `✔ Attendance Marked for 
+                <span style='color:lightgreen'>${data.name}</span>`;
+        }
+
+        else if (data.status === "exists") {
+            msg.innerHTML = `✔ Already Marked Today:
+                <span style='color:cyan'>${data.name}</span>`;
+        }
+
+        else if (data.status === "unknown") {
+            msg.innerHTML = "<span style='color:orange'>Unknown Face</span>";
+        }
+
+        else if (data.status === "no_face") {
+            msg.innerHTML = "<span style='color:gray'>No Face Detected</span>";
+        }
+
+        else {
+            msg.innerHTML = `<span style='color:red'>${data.message || "Error"}</span>`;
+        }
+
+    } catch (err) {
+        msg.innerHTML = "<span style='color:red'>Connection Error</span>";
+    }
+
+}, 3000);
+</script>
+
+</body>
+</html>

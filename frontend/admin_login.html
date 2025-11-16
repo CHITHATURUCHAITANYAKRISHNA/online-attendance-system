@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0d1b2a, #1e3a8a);
+      color: white;
+    }
+
+    .login-card {
+      width: 360px;
+      padding: 35px 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.10);
+      box-shadow: 0 8px 35px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.8s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 28px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+
+    label {
+      font-size: 15px;
+      margin-bottom: 6px;
+      display: block;
+      opacity: 0.95;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      margin-bottom: 22px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: white;
+      font-size: 15px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    input:focus {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: #60a5fa;
+      box-shadow: 0 0 6px rgba(96, 165, 250, 0.7);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 12px;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      cursor: pointer;
+      transition: 0.25s;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .error {
+      margin-top: 15px;
+      font-size: 14px;
+      text-align: center;
+      color: #ff6b6b;
+      display: none;
+      animation: fadeError 0.3s ease;
+    }
+
+    @keyframes fadeError {
+      from { opacity: 0; transform: translateY(-5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-card">
+  <h2>Admin Login</h2>
+
+  <label>Username</label>
+  <input id="username" type="text" placeholder="Enter username">
+
+  <label>Password</label>
+  <input id="password" type="password" placeholder="Enter password">
+
+  <button onclick="login()">Login</button>
+
+  <div id="err" class="error">Invalid username or password</div>
+</div>
+
+<script>
+async function login() {
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value.trim();
+  const err = document.getElementById('err');
+
+  if (!user || !pass) {
+    err.textContent = "Please enter username and password";
+    err.style.display = "block";
+    return;
+  }
+
+  const res = await fetch('/admin_login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: user, password: pass })
+  });
+
+  const j = await res.json();
+
+  if (j.ok) {
+    window.location.href = "/admin";
+  } else {
+    err.textContent = "Invalid username or password";
+    err.style.display = "block";
+  }
+}
+</script>
+
+</body>
+</html>

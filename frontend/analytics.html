@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Analytics — FaceAttend</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <style>
+    body{font-family:Inter,Arial; margin:0; background:#0f1724; color:#e6eef8}
+    .wrap{padding:20px; max-width:1100px; margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between}
+    h1{margin:0 0 10px 0}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+    .card{background:#071426;padding:16px;border-radius:10px}
+    canvas{width:100% !important; height:300px !important}
+    .small{font-size:13px;color:#9fb1c9}
+    .recent{margin-top:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:left}
+    a.btn{display:inline-block;padding:8px 12px;background:#2b8aef;color:#fff;border-radius:8px;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Analytics</h1>
+        <div class="small">Live analytics & auto-refresh (every 5s)</div>
+      </div>
+      <div>
+        <a class="btn" href="/admin">Back to Admin</a>
+      </div>
+    </header>
+
+    <div style="margin-top:12px">
+      <a class="btn" id="refreshBtn" href="#">Refresh now</a>
+      <a class="btn" id="downloadBtn" href="/download_attendance" style="background:#0ca678">Download CSV</a>
+    </div>
+
+    <div class="grid">
+      
+      <!-- PIE CHART #1 – Attendance by Department -->
+      <div class="card">
+        <h3>Attendance by Department</h3>
+        <canvas id="chartDeptPie"></canvas>
+      </div>
+
+      <!-- BAR CHART – Top Students -->
+      <div class="card">
+        <h3>Top Students (by markings)</h3>
+        <canvas id="chartBar"></canvas>
+      </div>
+
+      <!-- PIE CHART #2 – Attendance Over Time -->
+      <div class="card">
+        <h3>Attendance Over Time (Pie Chart)</h3>
+        <canvas id="chartTimePie"></canvas>
+      </div>
+
+      <!-- RECENT TABLE -->
+      <div class="card">
+        <h3>Recent Attendance</h3>
+        <div id="totals" style="margin-bottom:10px" class="small"></div>
+        <div class="recent">
+          <table id="recentTable">
+            <thead><tr><th>Name</th><th>RegNo</th><th>Date</th><th>Time</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+(async function(){
+  const refreshBtn = document.getElementById('refreshBtn');
+  const recentTbody = document.querySelector('#recentTable tbody');
+  const totalsEl = document.getElementById('totals');
+
+  // fixed color palette
+  const COLORS = [
+    "#4e97ff", "#3ed1ff", "#ffca3a", "#ff595e",
+    "#8ac926", "#6a4c93", "#ff924c", "#52b788"
+  ];
+
+  // chart contexts
+  const deptPieCtx = document.getElementById('chartDeptPie').getContext('2d');
+  const barCtx     = document.getElementById('chartBar').getContext('2d');
+  const timePieCtx = document.getElementById('chartTimePie').getContext('2d');
+
+  // PIE 1 — DEPT
+  let deptPie = new Chart(deptPieCtx, {
+    type: 'pie',
+    data: { 
+      labels: [], 
+      datasets: [{
+        data: [],
+        backgroundColor: COLORS,
+        borderColor: "transparent"
+      }]
+    },
+  });
+
+  // BAR — TOP STUDENTS
+  let barChart = new Chart(barCtx, {
+    type: 'bar',
+    data: { 
+      labels: [], 
+      datasets: [{
+        label:'Marks',
+        data: [],
+        backgroundColor: COLORS,
+        borderColor: "transparent"
+      }] 
+    },
+  });
+
+  // PIE 2 — TIME PIE
+  let timePie = new Chart(timePieCtx, {
+    type: 'pie',
+    data: { 
+      labels: [], 
+      datasets: [{
+        data: [],
+        backgroundColor: COLORS,
+        borderColor: "transparent"
+      }] 
+    },
+  });
+
+  async function fetchData(){
+    try{
+      const res = await fetch('/analytics_data');
+      const json = await res.json();
+
+      totalsEl.innerHTML =
+        `Total students: <strong>${json.total_students}</strong> — Total markings: <strong>${json.total_attendance}</strong>`;
+
+      // ---- PIE #1 (DEPT) ----
+      const byDept = json.attendance_by_dept || [];
+      deptPie.data.labels = byDept.map(d => d[0]);
+      deptPie.data.datasets[0].data = byDept.map(d => d[1]);
+      deptPie.update();
+
+      // ---- BAR (TOP STUDENTS) ----
+      const top = json.top_students || [];
+      barChart.data.labels = top.map(s => s[0]);
+      barChart.data.datasets[0].data = top.map(s => s[1]);
+      barChart.update();
+
+      // ---- PIE #2 (TIME PIE) ----
+      const byDate = json.attendance_by_date || [];
+      timePie.data.labels = byDate.map(x => x[0]); 
+      timePie.data.datasets[0].data = byDate.map(x => x[1]);
+      timePie.update();
+
+      // ---- RECENT TABLE ----
+      recentTbody.innerHTML = '';
+      (json.recent || []).forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.name||''}</td>
+                        <td>${r.reg_no||''}</td>
+                        <td>${r.date||''}</td>
+                        <td>${r.time||''}</td>`;
+        recentTbody.appendChild(tr);
+      });
+
+    }catch(err){
+      console.error('analytics fetch error', err);
+    }
+  }
+
+  refreshBtn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    fetchData();
+  });
+
+  await fetchData();
+  setInterval(fetchData, 5000);
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register Student</title>
+
+    <style>
+        body { 
+            background: #0f0f0f; 
+            color: #fff; 
+            font-family: Arial; 
+            margin: 0;
+            padding: 40px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            background: #1b1b1b;
+            width: 420px;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 26px;
+            color: #4da3ff;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 12px 0;
+            border: none;
+            border-radius: 8px;
+            background: #2a2a2a;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        input::placeholder {
+            color: #aaa;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #captureBtn { 
+            background: #28a745; 
+            margin-bottom: 10px;
+        }
+        #captureBtn:hover { background: #1e7d38; }
+
+        #submitBtn { 
+            background: #0d6efd; 
+        }
+        #submitBtn:hover { background: #0b5cd1; }
+
+        video, canvas {
+            width: 100%;
+            height: 260px;
+            border-radius: 12px;
+            margin-top: 10px;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 18px 0;
+            color: #bbb;
+            font-size: 14px;
+        }
+
+        #msg {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Register Student</h1>
+
+    <form id="regForm">
+        <input type="text" id="name" placeholder="Student Name" required>
+        <input type="text" id="reg_no" placeholder="Register No" required>
+        <input type="text" id="dept" placeholder="Department" required>
+
+        <h3 style="text-align:center; color:#4da3ff;">📸 Capture Photo (Option 1)</h3>
+
+        <video id="camera" autoplay playsinline></video>
+        <button type="button" id="captureBtn">Capture from Camera</button>
+
+        <canvas id="captured" style="display:none"></canvas>
+
+        <div class="divider">── OR ──</div>
+
+        <h3 style="text-align:center; color:#4da3ff;">📁 Upload Photo (Option 2)</h3>
+        <input type="file" id="photo" accept="image/*">
+
+        <button id="submitBtn" type="submit">Register Student</button>
+    </form>
+
+    <p id="msg"></p>
+</div>
+
+<script>
+// Start Camera
+let video = document.getElementById("camera");
+navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+    .then(stream => video.srcObject = stream);
+
+// Capture image
+document.getElementById("captureBtn").onclick = () => {
+    let canvas = document.getElementById("captured");
+    canvas.style.display = "block";
+    canvas.width = 640;
+    canvas.height = 480;
+
+    let ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, 640, 480);
+
+    alert("✔ Photo Captured from Camera");
+};
+
+// Submit Registration
+document.getElementById("regForm").onsubmit = async (e) => {
+    e.preventDefault();
+
+    let form = new FormData();
+    form.append("name", document.getElementById("name").value);
+    form.append("reg_no", document.getElementById("reg_no").value);
+    form.append("dept", document.getElementById("dept").value);
+
+    let canvas = document.getElementById("captured");
+    let photoInput = document.getElementById("photo");
+
+    if (canvas.style.display === "block") {
+        let dataURL = canvas.toDataURL("image/jpeg");
+        let blob = await (await fetch(dataURL)).blob();
+        form.append("photo", blob, "captured.jpg");
+    } 
+    else if (photoInput.files.length > 0) {
+        form.append("photo", photoInput.files[0]);
+    } 
+    else {
+        alert("Please capture a photo or upload one!");
+        return;
+    }
+
+    let res = await fetch("/register_student", {
+        method: "POST",
+        body: form
+    });
+
+    let data = await res.json();
+    document.getElementById("msg").innerText = data.message;
+};
+</script>
+
+</body>
+</html>
