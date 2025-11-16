@@ -5,6 +5,8 @@ venv/
 # Python cache
 __pycache__/
 *.pyc
+*.py[codz]
+*$py.class
 
 # Logs
 *.log
@@ -12,3 +14,56 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environments
+.envrc
+.venv
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Build / Packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+wheels/
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Test / Coverage
+.tox/
+.nox/
+.coverage
+.cache
+pytest_cache/
+.hypothesis/
+
+# Django / Flask
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache/
+
+# IDE / Editor settings
+.vscode/
+.pytype/
+.pyre/
+.mypy_cache/
+.pybuilder/
+
+# Misc
+.Python
+scrapy/
+docs/_build/
+site/
